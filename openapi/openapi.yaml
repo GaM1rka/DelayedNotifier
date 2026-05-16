@@ -1,0 +1,176 @@
+openapi: 3.0.3
+info:
+  title: DelayedNotifier API
+  version: 1.0.0
+  description: HTTP API для создания, просмотра и отмены отложенных уведомлений.
+servers:
+  - url: http://localhost:8080
+paths:
+  /health:
+    get:
+      summary: Проверка состояния API
+      responses:
+        "200":
+          description: Сервис доступен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+  /notify:
+    post:
+      summary: Создать отложенное уведомление
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateNotificationRequest"
+      responses:
+        "201":
+          description: Уведомление создано и поставлено в очередь
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notification"
+        "400":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/Error"
+    get:
+      summary: Получить список уведомлений
+      description: Вспомогательный метод для UI.
+      responses:
+        "200":
+          description: Список уведомлений
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Notification"
+        "500":
+          $ref: "#/components/responses/Error"
+  /notify/{id}:
+    get:
+      summary: Получить статус уведомления
+      parameters:
+        - $ref: "#/components/parameters/NotificationId"
+      responses:
+        "200":
+          description: Уведомление найдено
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notification"
+        "400":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/Error"
+    delete:
+      summary: Отменить запланированное уведомление
+      parameters:
+        - $ref: "#/components/parameters/NotificationId"
+      responses:
+        "200":
+          description: Уведомление отменено
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notification"
+        "400":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/Error"
+components:
+  parameters:
+    NotificationId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    Error:
+      description: Ошибка запроса
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+  schemas:
+    Health:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+    CreateNotificationRequest:
+      type: object
+      required:
+        - email
+        - subject
+        - message
+        - send_at
+      properties:
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        subject:
+          type: string
+          example: Напоминание
+        message:
+          type: string
+          example: Через 10 минут встреча.
+        send_at:
+          type: string
+          format: date-time
+          example: "2026-05-16T12:30:00Z"
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        subject:
+          type: string
+        message:
+          type: string
+        send_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+            - scheduled
+            - sending
+            - sent
+            - failed
+            - canceled
+        attempts:
+          type: integer
+          minimum: 0
+        last_error:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: notification not found

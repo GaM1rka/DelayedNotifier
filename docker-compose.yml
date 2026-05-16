@@ -1,0 +1,108 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: delayed_notifier
+      POSTGRES_USER: delayed
+      POSTGRES_PASSWORD: delayed
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "PGPASSWORD=$$POSTGRES_PASSWORD psql -U $$POSTGRES_USER -d $$POSTGRES_DB -c 'SELECT 1'"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api-service:
+    build: ./backend/api-service
+    restart: on-failure
+    network_mode: host
+    environment:
+      HTTP_ADDR: :8080
+      POSTGRES_DSN: postgres://delayed:delayed@localhost:5432/delayed_notifier?sslmode=disable
+      REDIS_ADDR: localhost:6379
+      REDIS_TTL: 5s
+      RABBITMQ_URL: amqp://guest:guest@localhost:5672/
+      RABBITMQ_QUEUE: notifications.delayed
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  worker-service:
+    build: ./backend/worker-service
+    restart: on-failure
+    network_mode: host
+    environment:
+      POSTGRES_DSN: postgres://delayed:delayed@localhost:5432/delayed_notifier?sslmode=disable
+      RABBITMQ_URL: amqp://guest:guest@localhost:5672/
+      RABBITMQ_QUEUE: notifications.delayed
+      SENDER_URL: http://localhost:8004/send/email
+      MAX_ATTEMPTS: 5
+      RETRY_BASE_DELAY: 10s
+      RETRY_MAX_DELAY: 15m
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      sender-service:
+        condition: service_started
+
+  sender-service:
+    build: ./backend/sender-service
+    restart: on-failure
+    network_mode: host
+    env_file:
+      - ./backend/sender-service/.env
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - api-service
+
+  swagger-ui:
+    image: swaggerapi/swagger-ui:v5.17.14
+    environment:
+      SWAGGER_JSON: /openapi/openapi.yaml
+    volumes:
+      - ./openapi:/openapi:ro
+    ports:
+      - "8082:8080"
+
+  mailpit:
+    image: axllent/mailpit:v1.20
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  postgres_data:

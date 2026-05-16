@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DelayedNotifier</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="topbar">
+        <div>
+          <h1>DelayedNotifier</h1>
+          <p>Отложенные email-уведомления через RabbitMQ</p>
+        </div>
+        <button id="refresh" class="icon-button" title="Обновить список">↻</button>
+      </section>
+
+      <section class="workspace">
+        <form id="notify-form" class="panel">
+          <h2>Новое уведомление</h2>
+          <label>
+            Email
+            <input name="email" type="email" placeholder="user@example.com" required />
+          </label>
+          <label>
+            Тема
+            <input name="subject" type="text" placeholder="Напоминание" required />
+          </label>
+          <label>
+            Сообщение
+            <textarea name="message" rows="5" placeholder="Текст уведомления" required></textarea>
+          </label>
+          <label>
+            Время отправки
+            <input name="send_at" type="datetime-local" required />
+          </label>
+          <button type="submit">Создать</button>
+          <p id="form-message" class="form-message"></p>
+        </form>
+
+        <section class="panel list-panel">
+          <div class="section-title">
+            <h2>Уведомления</h2>
+            <span id="count">0</span>
+          </div>
+          <div id="notifications" class="notifications"></div>
+        </section>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
