@@ -38,16 +38,20 @@ docker compose up --build
 
 ## Локальная разработка
 
-Конфигурация задаётся в `.env` файлах сервисов (`backend/*/.env`) или через переменные окружения. Для `sender-service` уже перенесён `.env` из notification-service донора; пример лежит в `backend/sender-service/.env.example`.
+Зарегистрируйте новую почту на https://mail.ru/. 
+После регистрации:
+→ Настройки
+→ Пароль и безопасность
+→ Пароли для внешних приложений
+Генерируете пароль и добавляете .env файл внутри /sender-serivce:
+bash
+SMTP_HOST=smtp.mail.ru
+SMTP_PORT=465
+SMTP_USERNAME=your-email
+SMTP_PASSWORD=your-generated-password
+SMTP_FROM=your-email
+SMTP_USE_TLS=true
 
-Если хотите отправлять через Mailpit вместо внешнего SMTP, задайте в `backend/sender-service/.env`:
-
-```bash
-HTTP_ADDR=:8004
-SMTP_HOST=mailpit
-SMTP_PORT=1025
-SMTP_USERNAME=test
-SMTP_PASSWORD=test
-SMTP_FROM=test@example.com
-SMTP_USE_TLS=false
-```
+KAFKA_BROKERS=kafka:9092
+KAFKA_TOPIC=notification.sent
+KAFKA_GROUP_ID=notification-service
